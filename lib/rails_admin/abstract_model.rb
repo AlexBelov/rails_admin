@@ -178,8 +178,8 @@ module RailsAdmin
 
       def build_statement_for_datetime_or_timestamp
         start_date, end_date = get_filtering_duration
-        start_date = start_date.to_time.try(:beginning_of_day) if start_date
-        end_date = end_date.to_time.try(:end_of_day) if end_date
+        start_date = start_date if start_date
+        end_date = end_date if end_date
         range_filter(start_date, end_date)
       end
 
@@ -199,13 +199,17 @@ module RailsAdmin
 
         def get_duration
           case @operator
-          when 'between'   then between
-          when 'today'     then today
-          when 'yesterday' then yesterday
-          when 'this_week' then this_week
-          when 'last_week' then last_week
-          else default
+          when 'between'   then time_interval(between)
+          when 'today'     then time_interval(today)
+          when 'yesterday' then time_interval(yesterday)
+          when 'this_week' then time_interval(this_week)
+          when 'last_week' then time_interval(last_week)
+          else time_interval(default)
           end
+        end
+
+        def time_interval(dates)
+          dates.uniq.count > 1 ? dates : dates.zip([:beginning_of_day, :end_of_day]).map{ |date, op| date.present? ? date.send(op) : date }
         end
 
         def today
