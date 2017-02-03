@@ -2427,9 +2427,9 @@
                     widget.find('.btn[data-action="togglePeriod"]').click();
                 }
             },
-            t: function () {
-                this.date(moment());
-            },
+            // t: function () {
+            //     this.date(moment());
+            // },
             'delete': function () {
                 this.clear();
             }
