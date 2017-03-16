@@ -222,11 +222,24 @@ module RailsAdmin
         end
 
         def build_statement_for_string_or_text
+          is_array = false
           return if @value.blank?
           @value = begin
             case @operator
             when 'default', 'like'
-              "%#{@value.downcase}%"
+              eval_value = begin
+                eval(@value)
+              rescue SyntaxError
+                nil
+              rescue
+                nil
+              end
+              if eval_value.kind_of?(Array)
+                is_array = true
+                @value
+              else
+                "%#{@value.downcase}%"
+              end
             when 'starts_with'
               "#{@value.downcase}%"
             when 'ends_with'
@@ -239,7 +252,11 @@ module RailsAdmin
           end
 
           if ar_adapter == 'postgresql'
-            ["(#{@column} ILIKE ?)", @value]
+            if is_array
+              ["(#{@column} IN (?))", (eval @value).map(&:to_s)]
+            else
+              ["(#{@column} ILIKE ?)", @value]
+            end
           else
             ["(LOWER(#{@column}) LIKE ?)", @value]
           end
