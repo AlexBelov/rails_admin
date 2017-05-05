@@ -216,6 +216,10 @@ module RailsAdmin
           ["(#{@column} = ?)", value]
         end
 
+        def array_for_value(value)
+          ["(#{@column} IN (?))", (eval value).map(&:to_s)]
+        end
+
         def build_statement_for_belongs_to_association
           return if @value.blank?
           ["(#{@column} = ?)", @value.to_i] if @value.to_i.to_s == @value

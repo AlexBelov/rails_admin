@@ -150,21 +150,32 @@ module RailsAdmin
       end
 
       def build_statement_for_integer_decimal_or_float
-        case @value
-        when Array then
-          val, range_begin, range_end = *@value.collect do |v|
-            next unless v.to_i.to_s == v || v.to_f.to_s == v
-            @type == :integer ? v.to_i : v.to_f
-          end
-          case @operator
-          when 'between'
-            range_filter(range_begin, range_end)
-          else
-            column_for_value(val) if val
-          end
+        eval_value = begin
+                       eval(@value[0])
+                     rescue SyntaxError
+                       nil
+                     rescue
+                       nil
+                     end
+        if eval_value.kind_of?(Array)
+          array_for_value(eval(@value[0]))
         else
-          if @value.to_i.to_s == @value || @value.to_f.to_s == @value
-            @type == :integer ? column_for_value(@value.to_i) : column_for_value(@value.to_f)
+          case @value
+          when Array then
+            val, range_begin, range_end = *@value.collect do |v|
+              next unless v.to_i.to_s == v || v.to_f.to_s == v
+              @type == :integer ? v.to_i : v.to_f
+            end
+            case @operator
+            when 'between'
+              range_filter(range_begin, range_end)
+            else
+              column_for_value(val) if val
+            end
+          else
+            if @value.to_i.to_s == @value || @value.to_f.to_s == @value
+              @type == :integer ? column_for_value(@value.to_i) : column_for_value(@value.to_f)
+            end
           end
         end
       end
@@ -209,7 +220,19 @@ module RailsAdmin
         end
 
         def time_interval(dates)
-          dates.uniq.count > 1 ? dates : dates.zip([:beginning_of_day, :end_of_day]).map{ |date, op| date.present? ? date.send(op) : date }
+          eval_value = begin
+                         eval(dates[0])
+                       rescue SyntaxError
+                         nil
+                       rescue
+                         nil
+                       end
+          if eval_value.kind_of?(Array)
+            dates = eval_value.map{ |dt| Time.parse(dt) }
+            dates.uniq.count > 1 ? dates : dates.zip([:beginning_of_day, :end_of_day]).map{ |date, op| date.present? ? date.send(op) : date }
+          else
+            dates.uniq.count > 1 ? dates : dates.zip([:beginning_of_day, :end_of_day]).map{ |date, op| date.present? ? date.send(op) : date }
+          end
         end
 
         def today
