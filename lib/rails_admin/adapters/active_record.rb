@@ -25,12 +25,19 @@ module RailsAdmin
         all(options, scope).first
       end
 
-      def all(options = {}, scope = nil)
+      def all(options = {}, scope = nil, params = nil)
+        # HACK dirty hack to speed up user search in edit affiliate tab
+        fields = if params.present? && params["associated_collection"] == "user"
+                   config.list.fields.select{ |f| [:id, :email, :first_name, :last_name].include?(f.name) }
+                 else
+                   config.list.fields.select(&:queryable?)
+                 end
+
         scope ||= scoped
         scope = scope.includes(options[:include]) if options[:include]
         scope = scope.limit(options[:limit]) if options[:limit]
         scope = scope.where(primary_key => options[:bulk_ids]) if options[:bulk_ids]
-        scope = query_scope(scope, options[:query]) if options[:query]
+        scope = query_scope(scope, options[:query], fields) if options[:query]
         scope = filter_scope(scope, options[:filters]) if options[:filters]
         if options[:page] && options[:per]
           scope = scope.send(Kaminari.config.page_method_name, options[:page]).per(options[:per])
